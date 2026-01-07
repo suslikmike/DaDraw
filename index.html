@@ -31,12 +31,23 @@
             padding-bottom: 50px;
         }
 
+        .runner {
+            position: relative;
+            width: 80px;
+            height: 110px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            animation: travel 6s linear infinite alternate;
+        }
+
         .ball {
             width: 80px;
             height: 80px;
             background: radial-gradient(circle at 30% 30%, #ffffff, #ff6b6b);
             border-radius: 50%;
-            position: relative;
+            position: absolute;
+            bottom: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3),
                         inset -10px -10px 20px rgba(0, 0, 0, 0.2),
                         inset 5px 5px 10px rgba(255, 255, 255, 0.3);
@@ -57,12 +68,21 @@
 
         .shadow {
             position: absolute;
-            bottom: 30px;
+            bottom: 0;
             width: 60px;
             height: 20px;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 50%;
             animation: shadow 1s ease-in-out infinite;
+        }
+
+        @keyframes travel {
+            0% {
+                transform: translateX(-45vw);
+            }
+            100% {
+                transform: translateX(45vw);
+            }
         }
 
         @keyframes jump {
@@ -98,8 +118,10 @@
 <body>
     <h1>Jumping Ball</h1>
     <div class="container">
-        <div class="shadow"></div>
-        <div class="ball"></div>
+        <div class="runner">
+            <div class="shadow"></div>
+            <div class="ball"></div>
+        </div>
     </div>
 </body>
 </html>
