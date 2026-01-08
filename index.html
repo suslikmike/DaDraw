@@ -1,264 +1,152 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Throwable Balls</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const spawnBox = document.getElementById('spawnBox');
+
+    // Set canvas size
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Physics constants
+    const gravity = 0.5;
+    const friction = 0.98;
+    const bounce = 0.7;
+
+    // Balls array
+    let balls = [];
+
+    // Ball class
+    class Ball {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.vx = (Math.random() - 0.5) * 4;
+            this.vy = (Math.random() - 0.5) * 4;
+            this.radius = Math.random() * 8 + 6;
+            this.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+            this.mass = this.radius;
         }
 
-        body {
-            width: 100%;
-            height: 100vh;
-            overflow: hidden;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: Arial, sans-serif;
-        }
+        update() {
+            // Apply gravity
+            this.vy += gravity;
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
+            // Apply friction
+            this.vx *= friction;
+            this.vy *= friction;
 
-        #spawnBox {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 150px;
-            height: 150px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
+            // Update position
+            this.x += this.vx;
+            this.y += this.vy;
 
-        #spawnBox:hover {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.8);
-        }
-
-        #spawnBox::before {
-            content: '+';
-            color: white;
-            font-size: 48px;
-            font-weight: bold;
-        }
-
-        #info {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            color: white;
-            font-size: 14px;
-            z-index: 999;
-        }
-    </style>
-</head>
-<body>
-    <canvas id="canvas"></canvas>
-    <div id="spawnBox"></div>
-    <div id="info">
-        <p>Click the + box to spawn balls</p>
-        <p>Click and drag on canvas to throw</p>
-    </div>
-
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const spawnBox = document.getElementById('spawnBox');
-
-        // Set canvas size
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-        // Physics constants
-        const gravity = 0.5;
-        const friction = 0.98;
-        const bounce = 0.7;
-
-        // Balls array
-        let balls = [];
-
-        // Ball class
-        class Ball {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.vx = (Math.random() - 0.5) * 4;
-                this.vy = (Math.random() - 0.5) * 4;
-                this.radius = Math.random() * 8 + 6;
-                this.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
-                this.mass = this.radius;
+            // Bounce off walls
+            if (this.x - this.radius < 0) {
+                this.x = this.radius;
+                this.vx *= -bounce;
             }
-
-            update() {
-                // Apply gravity
-                this.vy += gravity;
-
-                // Apply friction
-                this.vx *= friction;
-                this.vy *= friction;
-
-                // Update position
-                this.x += this.vx;
-                this.y += this.vy;
-
-                // Bounce off walls
-                if (this.x - this.radius < 0) {
-                    this.x = this.radius;
-                    this.vx *= -bounce;
-                }
-                if (this.x + this.radius > canvas.width) {
-                    this.x = canvas.width - this.radius;
-                    this.vx *= -bounce;
-                }
-                if (this.y - this.radius < 0) {
-                    this.y = this.radius;
-                    this.vy *= -bounce;
-                }
-                if (this.y + this.radius > canvas.height) {
-                    this.y = canvas.height - this.radius;
-                    this.vy *= -bounce;
-                }
+            if (this.x + this.radius > canvas.width) {
+                this.x = canvas.width - this.radius;
+                this.vx *= -bounce;
             }
-
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Add shine effect
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
+            if (this.y - this.radius < 0) {
+                this.y = this.radius;
+                this.vy *= -bounce;
+            }
+            if (this.y + this.radius > canvas.height) {
+                this.y = canvas.height - this.radius;
+                this.vy *= -bounce;
             }
         }
 
-        // Spawn box click handler
-        spawnBox.addEventListener('click', () => {
-            const rect = spawnBox.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
-            for (let i = 0; i < 3; i++) {
-                balls.push(new Ball(x, y));
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Add shine effect
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        isMouseOver(mx, my) {
+            const dist = Math.sqrt((this.x - mx) ** 2 + (this.y - my) ** 2);
+            return dist < this.radius;
+        }
+    }
+
+    // Spawn box click handler
+    spawnBox.addEventListener('click', () => {
+        const rect = spawnBox.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        for (let i = 0; i < 3; i++) {
+            balls.push(new Ball(x, y));
+        }
+    });
+
+    // Mouse tracking for dragging and throwing
+    let isDragging = false;
+    let selectedBall = null; // Reference to the selected ball
+    let dragStart = { x: 0, y: 0 };
+    let dragEnd = { x: 0, y: 0 };
+
+    canvas.addEventListener('mousedown', (e) => {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+
+        // Check if the mouse is over any ball
+        for (let ball of balls) {
+            if (ball.isMouseOver(mouseX, mouseY)) {
+                isDragging = true;
+                selectedBall = ball; // Set the selected ball
+                dragStart = { x: mouseX, y: mouseY };
+                dragEnd = { x: mouseX, y: mouseY };
+                break;
             }
-        });
+        }
+    });
 
-        // Mouse tracking for throwing
-        let isDragging = false;
-        let dragStart = { x: 0, y: 0 };
-        let dragEnd = { x: 0, y: 0 };
-
-        canvas.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            dragStart = { x: e.clientX, y: e.clientY };
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDragging) {
             dragEnd = { x: e.clientX, y: e.clientY };
-        });
-
-        canvas.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                dragEnd = { x: e.clientX, y: e.clientY };
-            }
-        });
-
-        canvas.addEventListener('mouseup', () => {
-            if (isDragging && balls.length > 0) {
-                const ball = balls[balls.length - 1];
-                ball.vx = (dragEnd.x - dragStart.x) * 0.1;
-                ball.vy = (dragEnd.y - dragStart.y) * 0.1;
-            }
-            isDragging = false;
-        });
-
-        // Collision detection
-        function checkCollisions() {
-            for (let i = 0; i < balls.length; i++) {
-                for (let j = i + 1; j < balls.length; j++) {
-                    const dx = balls[j].x - balls[i].x;
-                    const dy = balls[j].y - balls[i].y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const minDist = balls[i].radius + balls[j].radius;
-
-                    if (distance < minDist) {
-                        // Resolve collision
-                        const angle = Math.atan2(dy, dx);
-                        const sin = Math.sin(angle);
-                        const cos = Math.cos(angle);
-
-                        // Rotate velocities
-                        const vx1 = balls[i].vx * cos + balls[i].vy * sin;
-                        const vy1 = balls[i].vy * cos - balls[i].vx * sin;
-                        const vx2 = balls[j].vx * cos + balls[j].vy * sin;
-                        const vy2 = balls[j].vy * cos - balls[j].vx * sin;
-
-                        // Swap velocities
-                        const temp = vx1;
-                        balls[i].vx = (vx2 * cos - vy1 * sin) * 0.95;
-                        balls[i].vy = (vy1 * cos + vx2 * sin) * 0.95;
-                        balls[j].vx = (temp * cos - vy2 * sin) * 0.95;
-                        balls[j].vy = (vy2 * cos + temp * sin) * 0.95;
-
-                        // Separate balls
-                        const overlap = minDist - distance;
-                        const moveX = (overlap / 2) * cos;
-                        const moveY = (overlap / 2) * sin;
-                        balls[i].x -= moveX;
-                        balls[i].y -= moveY;
-                        balls[j].x += moveX;
-                        balls[j].y += moveY;
-                    }
-                }
+            if (selectedBall) {
+                // Update ball position to follow the mouse
+                selectedBall.x = dragEnd.x;
+                selectedBall.y = dragEnd.y;
             }
         }
+    });
 
-        // Animation loop
-        function animate() {
-            // Clear canvas
-            ctx.fillStyle = 'rgba(102, 126, 234, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+    canvas.addEventListener('mouseup', () => {
+        if (isDragging && selectedBall) {
+            // Assign velocity based on drag distance
+            selectedBall.vx = (dragEnd.x - dragStart.x) * 0.1;
+            selectedBall.vy = (dragEnd.y - dragStart.y) * 0.1;
+        }
+        isDragging = false;
+        selectedBall = null; // Reset the selected ball
+    });
 
-            // Update and draw balls
-            for (let ball of balls) {
-                ball.update();
-                ball.draw();
-            }
+    // Animation loop
+    function animate() {
+        // Clear canvas
+        ctx.fillStyle = 'rgba(102, 126, 234, 0.1)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Check collisions
-            checkCollisions();
-
-            // Draw drag preview
-            if (isDragging && balls.length > 0) {
-                const ball = balls[balls.length - 1];
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
-                ctx.beginPath();
-                ctx.moveTo(dragStart.x, dragStart.y);
-                ctx.lineTo(dragEnd.x, dragEnd.y);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
-            requestAnimationFrame(animate);
+        // Update and draw balls
+        for (let ball of balls) {
+            ball.update();
+            ball.draw();
         }
 
-        animate();
-    </script>
-</body>
-</html>
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+</script>
