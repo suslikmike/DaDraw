@@ -6,264 +6,359 @@
     <title>Canvas Drawing Framework</title>
     <style>
         body {
-            margin: 0;
-            padding: 20px;
+            font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            max-width: 900px;
+            width: 90%;
+        }
+
         h1 {
-            color: turquoise;
-            text-shadow: 3px 3px 3px darkblue;
+            text-align: center;
+            color: #333;
+            margin-top: 0;
         }
-        
-        canvas {
-            border: 2px solid #333;
-            background-color: white;
-            cursor: crosshair;
-            margin: 20px 0;
-        }
-        
+
         .controls {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
             flex-wrap: wrap;
             justify-content: center;
-            background-color: skyblue;
         }
-        
+
         button {
-            padding: 10px 15px;
-            font-size: 14px;
-            background-color: #4CAF50;
+            padding: 10px 20px;
+            background: #667eea;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        
-        button:hover {
-            background-color: #45a049;
-        }
-        
-        button.active {
-            background-color: #2196F3;
-        }
-        
-        .color-picker {
-            padding: 5px;
-            width: 50px;
-            height: 40px;
-            cursor: pointer;
-            border: 2px solid #333;
-            border-radius: 4px;
-        }
-        
-        .info {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: white;
-            border-radius: 4px;
-            color: #666;
             font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #764ba2;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        canvas {
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            background: white;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            cursor: crosshair;
+        }
+
+        .info {
+            text-align: center;
+            color: #666;
+            margin-top: 15px;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
-    <h1>Canvas Drawing Framework</h1>
-    
-    <div class="controls">
-        <button id="rectBtn" class="tool-btn active">Rectangle</button>
-        <button id="circleBtn" class="tool-btn">Circle</button>
-        <button id="lineBtn" class="tool-btn">Line</button>
-        <button id="triangleBtn" class="tool-btn">Triangle</button>
-        <input type="color" id="colorPicker" class="color-picker" value="#000000">
-        <button id="clearBtn">Clear Canvas</button>
-    </div>
-    
-    <canvas id="canvas"></canvas>
-    
-    <div class="info">
-        <p>Select a shape tool and click-drag on the canvas to draw. Use the color picker to change the drawing color.</p>
+    <div class="container">
+        <h1>Canvas Drawing Framework</h1>
+        
+        <div class="controls">
+            <button onclick="canvasApp.drawGrid()">Draw Grid</button>
+            <button onclick="canvasApp.drawCircles()">Draw Circles</button>
+            <button onclick="canvasApp.drawRectangles()">Draw Rectangles</button>
+            <button onclick="canvasApp.drawTriangles()">Draw Triangles</button>
+            <button onclick="canvasApp.drawCustomPattern()">Draw Pattern</button>
+            <button onclick="canvasApp.clear()">Clear Canvas</button>
+        </div>
+
+        <canvas id="myCanvas" width="800" height="600"></canvas>
+        
+        <div class="info">
+            <p>Click the buttons above to draw different shapes, or use the registerDrawFunction() API to add custom drawing functions.</p>
+        </div>
     </div>
 
     <script>
-        // Canvas setup
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        canvas.width = 800;
-        canvas.height = 600;
-        
-        // State
-        let isDrawing = false;
-        let startX = 0;
-        let startY = 0;
-        let currentTool = 'rectangle';
-        let currentColor = '#000000';
-        let shapes = [];
-        
-        // Tool buttons
-        const toolButtons = document.querySelectorAll('.tool-btn');
-        const colorPicker = document.getElementById('colorPicker');
-        const clearBtn = document.getElementById('clearBtn');
-        
-        // Event listeners for tools
-        toolButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                toolButtons.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                currentTool = e.target.id.replace('Btn', '');
-            });
-        });
-        
-        // Color picker
-        colorPicker.addEventListener('change', (e) => {
-            currentColor = e.target.value;
-        });
-        
-        // Clear canvas
-        clearBtn.addEventListener('click', () => {
-            shapes = [];
-            redraw();
-        });
-        
-        // Canvas drawing functions
-        function drawRectangle(fromX, fromY, toX, toY) {
-            const width = toX - fromX;
-            const height = toY - fromY;
-            ctx.strokeStyle = currentColor;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(fromX, fromY, width, height);
-        }
-        
-        function drawCircle(fromX, fromY, toX, toY) {
-            const radius = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
-            ctx.strokeStyle = currentColor;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(fromX, fromY, radius, 0, 2 * Math.PI);
-            ctx.stroke();
-        }
-        
-        function drawLine(fromX, fromY, toX, toY) {
-            ctx.strokeStyle = currentColor;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(fromX, fromY);
-            ctx.lineTo(toX, toY);
-            ctx.stroke();
-        }
-        
-        function drawTriangle(fromX, fromY, toX, toY) {
-            const centerX = fromX;
-            const centerY = fromY;
-            const width = toX - fromX;
-            const height = toY - fromY;
-            
-            ctx.strokeStyle = currentColor;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY - height / 2);
-            ctx.lineTo(centerX + width / 2, centerY + height / 2);
-            ctx.lineTo(centerX - width / 2, centerY + height / 2);
-            ctx.closePath();
-            ctx.stroke();
-        }
-        
-        function drawShape(tool, fromX, fromY, toX, toY) {
-            switch(tool) {
-                case 'rectangle':
-                    drawRectangle(fromX, fromY, toX, toY);
-                    break;
-                case 'circle':
-                    drawCircle(fromX, fromY, toX, toY);
-                    break;
-                case 'line':
-                    drawLine(fromX, fromY, toX, toY);
-                    break;
-                case 'triangle':
-                    drawTriangle(fromX, fromY, toX, toY);
-                    break;
+        /**
+         * Canvas Drawing Framework
+         * A simple framework that manages canvas operations and allows registering custom drawing functions
+         */
+        const canvasApp = {
+            canvas: null,
+            ctx: null,
+            drawFunctions: {},
+
+            /**
+             * Initialize the canvas framework
+             */
+            init() {
+                this.canvas = document.getElementById('myCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                console.log('Canvas framework initialized');
+            },
+
+            /**
+             * Register a custom drawing function
+             * @param {string} name - Name identifier for the function
+             * @param {function} drawFn - Function that accepts context and canvas as parameters
+             */
+            registerDrawFunction(name, drawFn) {
+                if (typeof drawFn !== 'function') {
+                    console.error('Draw function must be a function');
+                    return;
+                }
+                this.drawFunctions[name] = drawFn;
+                console.log(`Drawing function '${name}' registered`);
+            },
+
+            /**
+             * Call a registered custom drawing function
+             * @param {string} name - Name of the registered function
+             */
+            callDrawFunction(name) {
+                if (!this.drawFunctions[name]) {
+                    console.error(`Drawing function '${name}' not found`);
+                    return;
+                }
+                try {
+                    this.drawFunctions[name](this.ctx, this.canvas);
+                } catch (error) {
+                    console.error(`Error executing drawing function '${name}':`, error);
+                }
+            },
+
+            /**
+             * Get the canvas context
+             * @returns {CanvasRenderingContext2D}
+             */
+            getContext() {
+                return this.ctx;
+            },
+
+            /**
+             * Get the canvas element
+             * @returns {HTMLCanvasElement}
+             */
+            getCanvas() {
+                return this.canvas;
+            },
+
+            /**
+             * Clear the entire canvas
+             */
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            },
+
+            /**
+             * Save canvas state
+             */
+            save() {
+                this.ctx.save();
+            },
+
+            /**
+             * Restore canvas state
+             */
+            restore() {
+                this.ctx.restore();
+            },
+
+            // Built-in drawing functions
+
+            /**
+             * Draw a grid pattern
+             */
+            drawGrid() {
+                this.clear();
+                const gridSize = 50;
+                const ctx = this.ctx;
+
+                ctx.strokeStyle = '#ddd';
+                ctx.lineWidth = 1;
+
+                // Vertical lines
+                for (let x = 0; x <= this.canvas.width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, this.canvas.height);
+                    ctx.stroke();
+                }
+
+                // Horizontal lines
+                for (let y = 0; y <= this.canvas.height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(this.canvas.width, y);
+                    ctx.stroke();
+                }
+
+                // Center point
+                ctx.fillStyle = '#667eea';
+                ctx.beginPath();
+                ctx.arc(this.canvas.width / 2, this.canvas.height / 2, 5, 0, Math.PI * 2);
+                ctx.fill();
+            },
+
+            /**
+             * Draw colorful circles
+             */
+            drawCircles() {
+                this.clear();
+                const ctx = this.ctx;
+                const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe'];
+
+                for (let i = 0; i < 15; i++) {
+                    const x = Math.random() * this.canvas.width;
+                    const y = Math.random() * this.canvas.height;
+                    const radius = Math.random() * 30 + 10;
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Add stroke
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            },
+
+            /**
+             * Draw random rectangles
+             */
+            drawRectangles() {
+                this.clear();
+                const ctx = this.ctx;
+                const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#ffd93d', '#6c5ce7'];
+
+                for (let i = 0; i < 12; i++) {
+                    const x = Math.random() * (this.canvas.width - 100);
+                    const y = Math.random() * (this.canvas.height - 100);
+                    const width = Math.random() * 100 + 40;
+                    const height = Math.random() * 100 + 40;
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, width, height);
+
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x, y, width, height);
+                }
+            },
+
+            /**
+             * Draw random triangles
+             */
+            drawTriangles() {
+                this.clear();
+                const ctx = this.ctx;
+                const colors = ['#a29bfe', '#fd79a8', '#fdcb6e', '#6c5ce7', '#00b894'];
+
+                for (let i = 0; i < 10; i++) {
+                    const x = Math.random() * this.canvas.width;
+                    const y = Math.random() * this.canvas.height;
+                    const size = Math.random() * 40 + 20;
+
+                    ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                    ctx.beginPath();
+                    ctx.moveTo(x, y - size);
+                    ctx.lineTo(x + size, y + size);
+                    ctx.lineTo(x - size, y + size);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            },
+
+            /**
+             * Draw a custom pattern
+             */
+            drawCustomPattern() {
+                this.clear();
+                const ctx = this.ctx;
+                const size = 40;
+
+                for (let y = 0; y < this.canvas.height; y += size) {
+                    for (let x = 0; x < this.canvas.width; x += size) {
+                        const isEven = ((x / size) + (y / size)) % 2 === 0;
+                        
+                        if (isEven) {
+                            // Draw circle
+                            ctx.fillStyle = '#667eea';
+                            ctx.beginPath();
+                            ctx.arc(x + size / 2, y + size / 2, size / 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else {
+                            // Draw square
+                            ctx.fillStyle = '#764ba2';
+                            ctx.fillRect(x + size / 6, y + size / 6, size * 2 / 3, size * 2 / 3);
+                        }
+                    }
+                }
             }
-        }
-        
-        function redraw() {
+        };
 
+        // Initialize the framework when the page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            canvasApp.init();
 
-            
+            // Example: Register a custom drawing function
+            canvasApp.registerDrawFunction('customStar', (ctx, canvas) => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+                const outerRadius = 100;
+                const innerRadius = 50;
+                const points = 5;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#FFD700';
+                ctx.strokeStyle = '#FFA500';
+                ctx.lineWidth = 2;
 
-
-                drawCircle(50,50, 20, 20)
-
-            shapes.forEach(shape => {
-                const prevColor = currentColor;
-                currentColor = shape.color;
-                drawShape(shape.tool, shape.startX, shape.startY, shape.endX, shape.endY);
-                currentColor = prevColor;
+                ctx.beginPath();
+                for (let i = 0; i < points * 2; i++) {
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    const angle = (i * Math.PI) / points - Math.PI / 2;
+                    const x = cx + radius * Math.cos(angle);
+                    const y = cy + radius * Math.sin(angle);
+                    
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
             });
-        }
-        
-        // Mouse events
-        canvas.addEventListener('mousedown', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            startX = e.clientX - rect.left;
-            startY = e.clientY - rect.top;
-            isDrawing = true;
         });
-        
-        canvas.addEventListener('mousemove', (e) => {
-            if (!isDrawing) return;
-            
-            const rect = canvas.getBoundingClientRect();
-            const currentX = e.clientX - rect.left;
-            const currentY = e.clientY - rect.top;
-            
-            redraw();
-            drawShape(currentTool, startX, startY, currentX, currentY);
-        });
-        
-        canvas.addEventListener('mouseup', (e) => {
-            if (!isDrawing) return;
-            
-            const rect = canvas.getBoundingClientRect();
-            const endX = e.clientX - rect.left;
-            const endY = e.clientY - rect.top;
-            
-            shapes.push({
-                tool: currentTool,
-                startX: startX,
-                startY: startY,
-                endX: endX,
-                endY: endY,
-                color: currentColor
-            });
-            
-            isDrawing = false;
-            redraw();
-        });
-        
 
-        window.document.onready = function()  {
-            console.log("onload")
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-
-        
-
-        canvas.addEventListener('mouseleave', () => {
-            // if (isDrawing) {
-            //     isDrawing = false;
-            //     redraw();
-            // }
-        });
+        // Optional: Make canvasApp globally accessible for console usage
+        window.canvasApp = canvasApp;
     </script>
 </body>
 </html>
