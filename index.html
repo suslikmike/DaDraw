@@ -1,151 +1,251 @@
-<script>
-    const canvas = document.getElementById('canvas');
-    const spawnBox = document.getElementById('spawnBox');
-
-    // Set canvas size
-    function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    // Physics constants
-    const gravity = 0.5;
-    const friction = 0.98;
-    const bounce = 0.7;
-
-    // Balls array
-    let balls = [];
-
-    // Ball class
-    class Ball {
-        constructor(x, y) {
-            this.x = x;
-            this.y = y;
-            this.vx = (Math.random() - 0.5) * 4;
-            this.vy = (Math.random() - 0.5) * 4;
-            this.radius = Math.random() * 8 + 6;
-            this.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
-            this.mass = this.radius;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Drawing Framework</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
         }
-
-        update() {
-            // Apply gravity
-            this.vy += gravity;
-
-            // Apply friction
-            this.vx *= friction;
-            this.vy *= friction;
-
-            // Update position
-            this.x += this.vx;
-            this.y += this.vy;
-
-            // Bounce off walls
-            if (this.x - this.radius < 0) {
-                this.x = this.radius;
-                this.vx *= -bounce;
-            }
-            if (this.x + this.radius > canvas.width) {
-                this.x = canvas.width - this.radius;
-                this.vx *= -bounce;
-            }
-            if (this.y - this.radius < 0) {
-                this.y = this.radius;
-                this.vy *= -bounce;
-            }
-            if (this.y + this.radius > canvas.height) {
-                this.y = canvas.height - this.radius;
-                this.vy *= -bounce;
-            }
+        
+        h1 {
+            color: #333;
         }
+        
+        canvas {
+            border: 2px solid #333;
+            background-color: white;
+            cursor: crosshair;
+            margin: 20px 0;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 10px 15px;
+            font-size: 14px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button.active {
+            background-color: #2196F3;
+        }
+        
+        .color-picker {
+            padding: 5px;
+            width: 50px;
+            height: 40px;
+            cursor: pointer;
+            border: 2px solid #333;
+            border-radius: 4px;
+        }
+        
+        .info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Canvas Drawing Framework</h1>
+    
+    <div class="controls">
+        <button id="rectBtn" class="tool-btn active">Rectangle</button>
+        <button id="circleBtn" class="tool-btn">Circle</button>
+        <button id="lineBtn" class="tool-btn">Line</button>
+        <button id="triangleBtn" class="tool-btn">Triangle</button>
+        <input type="color" id="colorPicker" class="color-picker" value="#000000">
+        <button id="clearBtn">Clear Canvas</button>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <div class="info">
+        <p>Select a shape tool and click-drag on the canvas to draw. Use the color picker to change the drawing color.</p>
+    </div>
 
-        draw() {
-            ctx.fillStyle = this.color;
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = 800;
+        canvas.height = 600;
+        
+        // State
+        let isDrawing = false;
+        let startX = 0;
+        let startY = 0;
+        let currentTool = 'rectangle';
+        let currentColor = '#000000';
+        let shapes = [];
+        
+        // Tool buttons
+        const toolButtons = document.querySelectorAll('.tool-btn');
+        const colorPicker = document.getElementById('colorPicker');
+        const clearBtn = document.getElementById('clearBtn');
+        
+        // Event listeners for tools
+        toolButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                toolButtons.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentTool = e.target.id.replace('Btn', '');
+            });
+        });
+        
+        // Color picker
+        colorPicker.addEventListener('change', (e) => {
+            currentColor = e.target.value;
+        });
+        
+        // Clear canvas
+        clearBtn.addEventListener('click', () => {
+            shapes = [];
+            redraw();
+        });
+        
+        // Canvas drawing functions
+        function drawRectangle(fromX, fromY, toX, toY) {
+            const width = toX - fromX;
+            const height = toY - fromY;
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(fromX, fromY, width, height);
+        }
+        
+        function drawCircle(fromX, fromY, toX, toY) {
+            const radius = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Add shine effect
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 1;
+            ctx.arc(fromX, fromY, radius, 0, 2 * Math.PI);
             ctx.stroke();
         }
-
-        isMouseOver(mx, my) {
-            const dist = Math.sqrt((this.x - mx) ** 2 + (this.y - my) ** 2);
-            return dist < this.radius;
+        
+        function drawLine(fromX, fromY, toX, toY) {
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
         }
-    }
-
-    // Spawn box click handler
-    spawnBox.addEventListener('click', () => {
-        const rect = spawnBox.getBoundingClientRect();
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
-        for (let i = 0; i < 3; i++) {
-            balls.push(new Ball(x, y));
+        
+        function drawTriangle(fromX, fromY, toX, toY) {
+            const centerX = fromX;
+            const centerY = fromY;
+            const width = toX - fromX;
+            const height = toY - fromY;
+            
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - height / 2);
+            ctx.lineTo(centerX + width / 2, centerY + height / 2);
+            ctx.lineTo(centerX - width / 2, centerY + height / 2);
+            ctx.closePath();
+            ctx.stroke();
         }
-    });
-
-    // Mouse tracking for dragging and throwing
-    let isDragging = false;
-    let selectedBall = null; // Reference to the selected ball
-    let dragStart = { x: 0, y: 0 };
-    let dragEnd = { x: 0, y: 0 };
-
-    canvas.addEventListener('mousedown', (e) => {
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
-
-        // Check if the mouse is over any ball
-        for (let ball of balls) {
-            if (ball.isMouseOver(mouseX, mouseY)) {
-                isDragging = true;
-                selectedBall = ball; // Set the selected ball
-                dragStart = { x: mouseX, y: mouseY };
-                dragEnd = { x: mouseX, y: mouseY };
-                break;
+        
+        function drawShape(tool, fromX, fromY, toX, toY) {
+            switch(tool) {
+                case 'rectangle':
+                    drawRectangle(fromX, fromY, toX, toY);
+                    break;
+                case 'circle':
+                    drawCircle(fromX, fromY, toX, toY);
+                    break;
+                case 'line':
+                    drawLine(fromX, fromY, toX, toY);
+                    break;
+                case 'triangle':
+                    drawTriangle(fromX, fromY, toX, toY);
+                    break;
             }
         }
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            dragEnd = { x: e.clientX, y: e.clientY };
-            if (selectedBall) {
-                // Update ball position to follow the mouse
-                selectedBall.x = dragEnd.x;
-                selectedBall.y = dragEnd.y;
+        
+        function redraw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            shapes.forEach(shape => {
+                const prevColor = currentColor;
+                currentColor = shape.color;
+                drawShape(shape.tool, shape.startX, shape.startY, shape.endX, shape.endY);
+                currentColor = prevColor;
+            });
+        }
+        
+        // Mouse events
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            isDrawing = true;
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+            
+            redraw();
+            drawShape(currentTool, startX, startY, currentX, currentY);
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const endX = e.clientX - rect.left;
+            const endY = e.clientY - rect.top;
+            
+            shapes.push({
+                tool: currentTool,
+                startX: startX,
+                startY: startY,
+                endX: endX,
+                endY: endY,
+                color: currentColor
+            });
+            
+            isDrawing = false;
+            redraw();
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            if (isDrawing) {
+                isDrawing = false;
+                redraw();
             }
-        }
-    });
-
-    canvas.addEventListener('mouseup', () => {
-        if (isDragging && selectedBall) {
-            // Assign velocity based on drag distance
-            selectedBall.vx = (dragEnd.x - dragStart.x) * 0.1;
-            selectedBall.vy = (dragEnd.y - dragStart.y) * 0.1;
-        }
-        isDragging = false;
-        selectedBall = null; // Reset the selected ball
-    });
-
-    // Animation loop
-    function animate() {
-        // Clear canvas
-        ctx.fillStyle = 'rgba(102, 126, 234, 0.1)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Update and draw balls
-        for (let ball of balls) {
-            ball.update();
-            ball.draw();
-        }
-
-        requestAnimationFrame(animate);
-    }
-
-    animate();
-</script>
+        });
+    </script>
+</body>
+</html>
