@@ -3,362 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canvas Drawing Framework</title>
+    <title>Hello Canvas</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
         }
-
-        .container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            padding: 20px;
-            max-width: 900px;
-            width: 90%;
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-top: 0;
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        button {
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s;
-        }
-
-        button:hover {
-            background: #764ba2;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
         canvas {
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            background: white;
             display: block;
-            margin: 0 auto;
-            max-width: 100%;
-            cursor: crosshair;
-        }
-
-        .info {
-            text-align: center;
-            color: #666;
-            margin-top: 15px;
-            font-size: 12px;
+            width: 100vw;
+            height: 100vh;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Canvas Drawing Framework</h1>
-        
-        <div class="controls">
-            <button onclick="canvasApp.drawGrid()">Draw Grid</button>
-            <button onclick="canvasApp.drawCircles()">Draw Circles</button>
-            <button onclick="canvasApp.drawRectangles()">Draw Rectangles</button>
-            <button onclick="canvasApp.drawTriangles()">Draw Triangles</button>
-            <button onclick="canvasApp.drawCustomPattern()">Draw Pattern</button>
-            <button onclick="canvasApp.clear()">Clear Canvas</button>
-        </div>
-
-        <canvas id="myCanvas" width="800" height="600"></canvas>
-        
-        <div class="info">
-            <p>Click the buttons above to draw different shapes, or use the registerDrawFunction() API to add custom drawing functions.</p>
-        </div>
-    </div>
-
+    <canvas id="canvas"></canvas>
     <script>
-        /**
-         * Canvas Drawing Framework
-         * A simple framework that manages canvas operations and allows registering custom drawing functions
-         */
-        const canvasApp = {
-            canvas: null,
-            ctx: null,
-            drawFunctions: {},
-
-            /**
-             * Initialize the canvas framework
-             */
-            init() {
-                this.canvas = document.getElementById('myCanvas');
-                this.ctx = this.canvas.getContext('2d');
-                console.log('Canvas framework initialized');
-            },
-
-            /**
-             * Register a custom drawing function
-             * @param {string} name - Name identifier for the function
-             * @param {function} drawFn - Function that accepts context and canvas as parameters
-             */
-            registerDrawFunction(name, drawFn) {
-                if (typeof drawFn !== 'function') {
-                    console.error('Draw function must be a function');
-                    return;
-                }
-                this.drawFunctions[name] = drawFn;
-                console.log(`Drawing function '${name}' registered`);
-            },
-
-            /**
-             * Call a registered custom drawing function
-             * @param {string} name - Name of the registered function
-             */
-            callDrawFunction(name) {
-                if (!this.drawFunctions[name]) {
-                    console.error(`Drawing function '${name}' not found`);
-                    return;
-                }
-                try {
-                    this.drawFunctions[name](this.ctx, this.canvas);
-                } catch (error) {
-                    console.error(`Error executing drawing function '${name}':`, error);
-                }
-            },
-
-            /**
-             * Get the canvas context
-             * @returns {CanvasRenderingContext2D}
-             */
-            getContext() {
-                return this.ctx;
-            },
-
-            /**
-             * Get the canvas element
-             * @returns {HTMLCanvasElement}
-             */
-            getCanvas() {
-                return this.canvas;
-            },
-
-            /**
-             * Clear the entire canvas
-             */
-            clear() {
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            },
-
-            /**
-             * Save canvas state
-             */
-            save() {
-                this.ctx.save();
-            },
-
-            /**
-             * Restore canvas state
-             */
-            restore() {
-                this.ctx.restore();
-            },
-
-            // Built-in drawing functions
-
-            /**
-             * Draw a grid pattern
-             */
-            drawGrid() {
-                this.clear();
-                const gridSize = 50;
-                const ctx = this.ctx;
-
-                ctx.strokeStyle = '#ddd';
-                ctx.lineWidth = 1;
-
-                // Vertical lines
-                for (let x = 0; x <= this.canvas.width; x += gridSize) {
-                    ctx.beginPath();
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, this.canvas.height);
-                    ctx.stroke();
-                }
-
-                // Horizontal lines
-                for (let y = 0; y <= this.canvas.height; y += gridSize) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(this.canvas.width, y);
-                    ctx.stroke();
-                }
-
-                // Center point
-                ctx.fillStyle = '#667eea';
-                ctx.beginPath();
-                ctx.arc(this.canvas.width / 2, this.canvas.height / 2, 5, 0, Math.PI * 2);
-                ctx.fill();
-            },
-
-            /**
-             * Draw colorful circles
-             */
-            drawCircles() {
-                this.clear();
-                const ctx = this.ctx;
-                const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe'];
-
-                for (let i = 0; i < 15; i++) {
-                    const x = Math.random() * this.canvas.width;
-                    const y = Math.random() * this.canvas.height;
-                    const radius = Math.random() * 30 + 10;
-                    const color = colors[Math.floor(Math.random() * colors.length)];
-
-                    ctx.fillStyle = color;
-                    ctx.beginPath();
-                    ctx.arc(x, y, radius, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Add stroke
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-            },
-
-            /**
-             * Draw random rectangles
-             */
-            drawRectangles() {
-                this.clear();
-                const ctx = this.ctx;
-                const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#ffd93d', '#6c5ce7'];
-
-                for (let i = 0; i < 12; i++) {
-                    const x = Math.random() * (this.canvas.width - 100);
-                    const y = Math.random() * (this.canvas.height - 100);
-                    const width = Math.random() * 100 + 40;
-                    const height = Math.random() * 100 + 40;
-                    const color = colors[Math.floor(Math.random() * colors.length)];
-
-                    ctx.fillStyle = color;
-                    ctx.fillRect(x, y, width, height);
-
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(x, y, width, height);
-                }
-            },
-
-            /**
-             * Draw random triangles
-             */
-            drawTriangles() {
-                this.clear();
-                const ctx = this.ctx;
-                const colors = ['#a29bfe', '#fd79a8', '#fdcb6e', '#6c5ce7', '#00b894'];
-
-                for (let i = 0; i < 10; i++) {
-                    const x = Math.random() * this.canvas.width;
-                    const y = Math.random() * this.canvas.height;
-                    const size = Math.random() * 40 + 20;
-
-                    ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-                    ctx.beginPath();
-                    ctx.moveTo(x, y - size);
-                    ctx.lineTo(x + size, y + size);
-                    ctx.lineTo(x - size, y + size);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-            },
-
-            /**
-             * Draw a custom pattern
-             */
-            drawCustomPattern() {
-                this.clear();
-                const ctx = this.ctx;
-                const size = 40;
-
-                for (let y = 0; y < this.canvas.height; y += size) {
-                    for (let x = 0; x < this.canvas.width; x += size) {
-                        const isEven = ((x / size) + (y / size)) % 2 === 0;
-                        
-                        if (isEven) {
-                            // Draw circle
-                            ctx.fillStyle = '#667eea';
-                            ctx.beginPath();
-                            ctx.arc(x + size / 2, y + size / 2, size / 3, 0, Math.PI * 2);
-                            ctx.fill();
-                        } else {
-                            // Draw square
-                            ctx.fillStyle = '#764ba2';
-                            ctx.fillRect(x + size / 6, y + size / 6, size * 2 / 3, size * 2 / 3);
-                        }
-                    }
-                }
-            }
-        };
-
-        // Initialize the framework when the page loads
-        window.addEventListener('DOMContentLoaded', () => {
-            canvasApp.init();
-
-            // Example: Register a custom drawing function
-            canvasApp.registerDrawFunction('customStar', (ctx, canvas) => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                const cx = canvas.width / 2;
-                const cy = canvas.height / 2;
-                const outerRadius = 100;
-                const innerRadius = 50;
-                const points = 5;
-
-                ctx.fillStyle = '#FFD700';
-                ctx.strokeStyle = '#FFA500';
-                ctx.lineWidth = 2;
-
-                ctx.beginPath();
-                for (let i = 0; i < points * 2; i++) {
-                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                    const angle = (i * Math.PI) / points - Math.PI / 2;
-                    const x = cx + radius * Math.cos(angle);
-                    const y = cy + radius * Math.sin(angle);
-                    
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-            });
-        });
-
-        // Optional: Make canvasApp globally accessible for console usage
-        window.canvasApp = canvasApp;
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Get device pixel ratio for retina screen support
+        const dpr = window.devicePixelRatio || 1;
+        
+        function resizeCanvas() {
+            // Set the actual drawing resolution (doubled for retina)
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            
+            // Scale the canvas context to account for devicePixelRatio
+            ctx.scale(dpr, dpr);
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Example drawing code
+        ctx.fillStyle = '#fff';
+        ctx.font = '32px Arial';
+        ctx.fillText('Hello, Retina Display!', 50, 50);
     </script>
 </body>
 </html>
