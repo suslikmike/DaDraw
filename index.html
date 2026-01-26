@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello Canvas</title>
+    <title>DaDraw</title>
     <style>
         body {
             margin: 0;
@@ -49,6 +49,22 @@
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+
+    // ========================================
+    // draw here - add your event listeners below for screen 1
+    // ========================================
+
+    // Handle click events
+    canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        handleClick(x, y);
+    });
+
+    // ========================================
+    // end of event listeners for screen 2
+    // ========================================
 
     function loop(time) {
         draw(time, ctx, width, height);  // передаём время в функцию рисования
