@@ -19,6 +19,19 @@ brushIcon.src = 'paintbrush.png';
 const eraserIcon = new Image();
 eraserIcon.src = 'eraser.png';
 
+// Responsive scaling - base design is 1200px width
+function getScale(width) {
+    const baseWidth = 1200;
+    const minScale = 0.5;
+    const maxScale = 1.5;
+    return Math.min(maxScale, Math.max(minScale, width / baseWidth));
+}
+
+// Check if device is mobile
+function isMobile(width) {
+    return width < 768;
+}
+
 let currentScreen = 1;
 
 // Store button position for click detection
@@ -77,6 +90,9 @@ const MAX_ZOOM = 5;
 // Clear button bounds
 let clearButtonBounds = { x: 0, y: 0, width: 0, height: 0 };
 
+// Current toolbar height (updates based on screen size)
+let currentToolbarHeight = 70;
+
 function draw(time, ctx, width, height) {
     ctx.clearRect(0, 0, width, height);
 
@@ -88,61 +104,60 @@ function draw(time, ctx, width, height) {
 }
 
 function drawScreen1(time, ctx, width, height) {
+    const scale = getScale(width);
+    const mobile = isMobile(width);
+
     // 2. Рисуем фон
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, width, height);
 
+    // Title - responsive font size
+    const titleSize = Math.max(36, Math.floor(72 * scale));
     ctx.fillStyle = "black";
-    ctx.font = "72px Arial";
+    ctx.font = `${titleSize}px Arial`;
 
     const text = "DaDraw";
     const textWidth = ctx.measureText(text).width;
     const x = (width - textWidth) / 2;
-    const y = 100;
+    const y = Math.max(80, 100 * scale);
     ctx.fillText(text, x, y);
 
+    // Subtitle - responsive
+    const subtitleSize = Math.max(10, Math.floor(12 * scale));
     ctx.fillStyle = "black";
-    ctx.font = "12px Arial";
+    ctx.font = `${subtitleSize}px Arial`;
+    const subtitle = "By Mikhail Suslov a beginner to programming";
+    const subtitleWidth = ctx.measureText(subtitle).width;
+    ctx.fillText(subtitle, (width - subtitleWidth) / 2, y + 30 * scale);
 
-    ctx.fillText("By Mikhail Suslov a beginner to programming", x + 10, 130);
-
-
-
-
-
-    // Example: draw a circle
-    // ctx.beginPath();
-    // ctx.arc(width / 2, height / 2, 50, 0, Math.PI * 2);
-    // ctx.fillStyle = "red";
-    // ctx.fill();
-
-    // ========================================
-    // end of custom objects
-    // ========================================
-
-    // Draw rectangle at bottom
-    const rectHeight = 60;
+    // Draw rectangle at bottom - responsive
+    const rectHeight = Math.max(50, 60 * scale);
+    const rectWidth = Math.max(200, 250 * scale);
     const rectY = height - rectHeight - 20;
-    const rectX = (width - 250) / 2;
+    const rectX = (width - rectWidth) / 2;
 
     // Update button bounds for click detection
-    buttonBounds = { x: rectX, y: rectY, width: 250, height: rectHeight };
+    buttonBounds = { x: rectX, y: rectY, width: rectWidth, height: rectHeight };
 
     ctx.fillStyle = "lightgreen";
-    ctx.fillRect(rectX - 5 , rectY, 250, rectHeight);
+    ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
     ctx.strokeStyle = "Black";
     ctx.lineWidth = 3;
-    ctx.strokeRect(rectX - 5 , rectY, 250, rectHeight);
+    ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
 
-    // Add text on the rectangle
+    // Add text on the rectangle - responsive
+    const buttonFontSize = Math.max(18, Math.floor(24 * scale));
     ctx.fillStyle = "black";
-    ctx.font = "24px Arial";
+    ctx.font = `${buttonFontSize}px Arial`;
     const buttonText = "Start Drawing";
     const buttonTextWidth = ctx.measureText(buttonText).width;
-    ctx.fillText(buttonText, (width - buttonTextWidth) / 2, rectY + 38);
+    ctx.fillText(buttonText, (width - buttonTextWidth) / 2, rectY + rectHeight / 2 + buttonFontSize / 3);
 }
 
 function drawScreen2(time, ctx, width, height) {
+    const scale = getScale(width);
+    const mobile = isMobile(width);
+
     // Drawing canvas background (white for drawing area)
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, width, height);
@@ -188,8 +203,14 @@ function drawScreen2(time, ctx, width, height) {
     // Restore context (remove zoom/pan for UI elements)
     ctx.restore();
 
+    // Responsive toolbar dimensions
+    const toolbarHeight = Math.max(60, Math.floor(70 * scale));
+    currentToolbarHeight = toolbarHeight; // Update global for other functions
+    const toolSize = mobile ? 40 : Math.max(35, Math.floor(50 * scale));
+    const toolGap = mobile ? 5 : Math.max(5, Math.floor(10 * scale));
+    const toolY = Math.max(5, Math.floor(10 * scale));
+
     // Draw toolbar at top
-    const toolbarHeight = 70;
     ctx.strokeStyle = "black";
     ctx.lineWidth = 4;
     ctx.strokeRect(0, 0, width, toolbarHeight);
@@ -198,10 +219,7 @@ function drawScreen2(time, ctx, width, height) {
 
     // Draw tool buttons
     toolButtons = [];
-    let toolX = 20;
-    const toolY = 10;
-    const toolSize = 50;
-    const toolGap = 10;
+    let toolX = Math.max(10, Math.floor(20 * scale));
 
     Object.keys(tools).forEach((toolKey, index) => {
         const tool = tools[toolKey];
@@ -214,55 +232,59 @@ function drawScreen2(time, ctx, width, height) {
         ctx.lineWidth = 2;
         ctx.strokeRect(x, toolY, toolSize, toolSize);
 
-        // Tool name
+        // Tool name - responsive font
+        const toolFontSize = mobile ? 8 : Math.max(8, Math.floor(10 * scale));
         ctx.fillStyle = "white";
-        ctx.font = "10px Arial";
+        ctx.font = `${toolFontSize}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText(tool.name, x + toolSize/2, toolY + toolSize - 5);
+        ctx.fillText(tool.name, x + toolSize/2, toolY + toolSize - 3);
 
-        // Draw tool icon - use image for pencil, px text for others
+        // Draw tool icon - responsive sizing
+        const iconSize = Math.floor(toolSize * 0.6);
+        const iconOffset = (toolSize - iconSize) / 2;
+
         if (toolKey === 'pencil' && pencilIcon.complete) {
-            ctx.drawImage(pencilIcon, x + 10, toolY + 5, 30, 30);
+            ctx.drawImage(pencilIcon, x + iconOffset, toolY + 3, iconSize, iconSize);
         } else if (toolKey === 'pen' && penIcon.complete) {
-            ctx.drawImage(penIcon, x + 10, toolY + 5, 30, 30);
+            ctx.drawImage(penIcon, x + iconOffset, toolY + 3, iconSize, iconSize);
         } else if (toolKey === 'marker' && markerIcon.complete) {
-            ctx.drawImage(markerIcon, x + 10, toolY + 5, 30, 30);
+            ctx.drawImage(markerIcon, x + iconOffset, toolY + 3, iconSize, iconSize);
         } else if (toolKey === 'eraser' && eraserIcon.complete) {
-            ctx.drawImage(eraserIcon, x + 10, toolY + 5, 30, 30);
+            ctx.drawImage(eraserIcon, x + iconOffset, toolY + 3, iconSize, iconSize);
         } else if (toolKey === 'brush' && brushIcon.complete) {
-            ctx.drawImage(brushIcon, x + 10, toolY + 5, 30, 30);
+            ctx.drawImage(brushIcon, x + iconOffset, toolY + 3, iconSize, iconSize);
         } else {
-            ctx.font = "bold 12px Arial";
-            ctx.fillText(tool.lineWidth + 'px', x + toolSize/2, toolY + 22);
+            ctx.font = `bold ${Math.floor(12 * scale)}px Arial`;
+            ctx.fillText(tool.lineWidth + 'px', x + toolSize/2, toolY + toolSize/2);
         }
         ctx.textAlign = "left";
-
 
         toolButtons.push({ key: toolKey, x, y: toolY, width: toolSize, height: toolSize });
     });
 
-    // Draw color palette
+    // Draw color palette - responsive
     colorButtons = [];
-    const colorX = toolX + (toolSize + toolGap) * 5 + 30;
-    const colorSize = 20;
-    const colorGap = 3;
-    const colorsPerRow = 8;
+    const colorX = toolX + (toolSize + toolGap) * 5 + Math.floor(20 * scale);
+    const colorSize = mobile ? 16 : Math.max(14, Math.floor(20 * scale));
+    const colorGap = mobile ? 2 : 3;
+    const colorsPerRow = mobile ? 6 : 8;
 
     // Expand/Collapse button
-    const expandBtnX = colorX - 25;
-    const expandBtnY = toolY + 15;
-    colorExpandButtonBounds = { x: expandBtnX, y: expandBtnY, width: 20, height: 20 };
+    const expandBtnSize = mobile ? 16 : 20;
+    const expandBtnX = colorX - expandBtnSize - 5;
+    const expandBtnY = toolY + (toolSize - expandBtnSize) / 2;
+    colorExpandButtonBounds = { x: expandBtnX, y: expandBtnY, width: expandBtnSize, height: expandBtnSize };
 
     ctx.fillStyle = '#444';
-    ctx.fillRect(expandBtnX, expandBtnY, 20, 20);
+    ctx.fillRect(expandBtnX, expandBtnY, expandBtnSize, expandBtnSize);
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 14px Arial';
+    ctx.font = `bold ${mobile ? 12 : 14}px Arial`;
     ctx.textAlign = 'center';
-    ctx.fillText(colorPaletteExpanded ? '−' : '+', expandBtnX + 10, expandBtnY + 15);
+    ctx.fillText(colorPaletteExpanded ? '−' : '+', expandBtnX + expandBtnSize/2, expandBtnY + expandBtnSize * 0.75);
     ctx.textAlign = 'left';
 
     // Determine how many colors to show
-    const visibleColors = colorPaletteExpanded ? colors : colors.slice(0, 8);
+    const visibleColors = colorPaletteExpanded ? colors : colors.slice(0, colorsPerRow);
     const rows = colorPaletteExpanded ? Math.ceil(colors.length / colorsPerRow) : 1;
 
     // Draw expanded palette background if expanded
@@ -270,17 +292,17 @@ function drawScreen2(time, ctx, width, height) {
         const paletteWidth = colorsPerRow * (colorSize + colorGap) + 10;
         const paletteHeight = rows * (colorSize + colorGap) + 10;
         ctx.fillStyle = 'rgba(50, 50, 50, 0.95)';
-        ctx.fillRect(colorX - 5, toolY + 5, paletteWidth, paletteHeight);
+        ctx.fillRect(colorX - 5, toolY, paletteWidth, paletteHeight);
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 2;
-        ctx.strokeRect(colorX - 5, toolY + 5, paletteWidth, paletteHeight);
+        ctx.strokeRect(colorX - 5, toolY, paletteWidth, paletteHeight);
     }
 
     visibleColors.forEach((color, index) => {
         const row = Math.floor(index / colorsPerRow);
         const col = index % colorsPerRow;
         const x = colorX + (colorSize + colorGap) * col;
-        const y = toolY + 10 + (colorSize + colorGap) * row;
+        const y = toolY + 5 + (colorSize + colorGap) * row;
 
         ctx.fillStyle = color;
         ctx.fillRect(x, y, colorSize, colorSize);
@@ -300,58 +322,63 @@ function drawScreen2(time, ctx, width, height) {
         colorButtons.push({ color, x, y, width: colorSize, height: colorSize });
     });
 
-    // Clear button
-    const clearX = width - 100;
-    const clearY = toolY + 10;
-    clearButtonBounds = { x: clearX, y: clearY, width: 80, height: 35 };
+    // Clear button - responsive
+    const clearBtnWidth = mobile ? 60 : Math.max(60, Math.floor(80 * scale));
+    const clearBtnHeight = mobile ? 30 : Math.max(30, Math.floor(35 * scale));
+    const clearX = width - clearBtnWidth - 10;
+    const clearY = toolY + (toolSize - clearBtnHeight) / 2;
+    clearButtonBounds = { x: clearX, y: clearY, width: clearBtnWidth, height: clearBtnHeight };
 
     ctx.fillStyle = '#FF6B6B';
-    ctx.fillRect(clearX, clearY, 80, 35);
+    ctx.fillRect(clearX, clearY, clearBtnWidth, clearBtnHeight);
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
-    ctx.strokeRect(clearX, clearY, 80, 35);
+    ctx.strokeRect(clearX, clearY, clearBtnWidth, clearBtnHeight);
 
     ctx.fillStyle = 'white';
-    ctx.font = '14px Arial';
+    ctx.font = `${mobile ? 12 : 14}px Arial`;
     ctx.textAlign = 'center';
-    ctx.fillText('Clear', clearX + 40, clearY + 23);
+    ctx.fillText('Clear', clearX + clearBtnWidth/2, clearY + clearBtnHeight/2 + 5);
     ctx.textAlign = 'left';
 
-    // Zoom indicator and reset button
-    const zoomX = width - 200;
-    const zoomY = toolY + 10;
-    resetZoomButtonBounds = { x: zoomX, y: zoomY, width: 90, height: 35 };
+    // Zoom indicator and reset button - responsive
+    const zoomBtnWidth = mobile ? 60 : Math.max(70, Math.floor(90 * scale));
+    const zoomBtnHeight = clearBtnHeight;
+    const zoomX = clearX - zoomBtnWidth - 10;
+    const zoomY = clearY;
+    resetZoomButtonBounds = { x: zoomX, y: zoomY, width: zoomBtnWidth, height: zoomBtnHeight };
 
     ctx.fillStyle = zoomLevel !== 1 ? '#FFD93D' : '#888';
-    ctx.fillRect(zoomX, zoomY, 90, 35);
+    ctx.fillRect(zoomX, zoomY, zoomBtnWidth, zoomBtnHeight);
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
-    ctx.strokeRect(zoomX, zoomY, 90, 35);
+    ctx.strokeRect(zoomX, zoomY, zoomBtnWidth, zoomBtnHeight);
 
     ctx.fillStyle = 'black';
-    ctx.font = '12px Arial';
+    ctx.font = `${mobile ? 10 : 12}px Arial`;
     ctx.textAlign = 'center';
-    ctx.fillText(Math.round(zoomLevel * 100) + '%', zoomX + 45, zoomY + 15);
-    ctx.font = '10px Arial';
-    ctx.fillText('Reset', zoomX + 45, zoomY + 28);
+    ctx.fillText(Math.round(zoomLevel * 100) + '%', zoomX + zoomBtnWidth/2, zoomY + zoomBtnHeight/2 - 2);
+    ctx.font = `${mobile ? 8 : 10}px Arial`;
+    ctx.fillText('Reset', zoomX + zoomBtnWidth/2, zoomY + zoomBtnHeight/2 + 10);
     ctx.textAlign = 'left';
 
-    // Back button at bottom
-    const rectHeight = 50;
-    const rectY = height - rectHeight - 15;
-    const rectX = 20;
+    // Back button at bottom - responsive
+    const backBtnWidth = mobile ? 80 : Math.max(100, Math.floor(120 * scale));
+    const backBtnHeight = mobile ? 40 : Math.max(40, Math.floor(50 * scale));
+    const rectY = height - backBtnHeight - 10;
+    const rectX = 10;
 
-    buttonBounds = { x: rectX, y: rectY, width: 120, height: rectHeight };
+    buttonBounds = { x: rectX, y: rectY, width: backBtnWidth, height: backBtnHeight };
 
     ctx.fillStyle = "salmon";
-    ctx.fillRect(rectX, rectY, 120, rectHeight);
+    ctx.fillRect(rectX, rectY, backBtnWidth, backBtnHeight);
     ctx.strokeStyle = "Black";
     ctx.lineWidth = 3;
-    ctx.strokeRect(rectX, rectY, 120, rectHeight);
+    ctx.strokeRect(rectX, rectY, backBtnWidth, backBtnHeight);
 
     ctx.fillStyle = "black";
-    ctx.font = "18px Arial";
-    ctx.fillText("← Back", rectX + 25, rectY + 32);
+    ctx.font = `${mobile ? 14 : 18}px Arial`;
+    ctx.fillText("← Back", rectX + 15, rectY + backBtnHeight/2 + 6);
 }
 
 function handleClick(x, y) {
@@ -407,7 +434,7 @@ function handleClick(x, y) {
 // Drawing functions for mouse events
 function startDrawing(x, y) {
     if (currentScreen !== 2) return;
-    if (y < 70) return; // Don't draw on toolbar
+    if (y < currentToolbarHeight) return; // Don't draw on toolbar
 
     // Convert screen coordinates to canvas coordinates
     const canvasCoords = screenToCanvas(x, y);
@@ -450,7 +477,7 @@ function stopDrawing() {
 // Zoom function for scroll wheel
 function handleZoom(deltaY, mouseX, mouseY) {
     if (currentScreen !== 2) return;
-    if (mouseY < 70) return; // Don't zoom when over toolbar
+    if (mouseY < currentToolbarHeight) return; // Don't zoom when over toolbar
 
     const zoomFactor = deltaY > 0 ? 0.9 : 1.1;
     const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevel * zoomFactor));
