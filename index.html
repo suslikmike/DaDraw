@@ -62,6 +62,52 @@
         handleClick(x, y);
     });
 
+    // Mouse events for drawing
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        startDrawing(x, y);
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        continueDrawing(x, y);
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        stopDrawing();
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+        stopDrawing();
+    });
+
+    // Touch events for mobile drawing
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        startDrawing(x, y);
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        continueDrawing(x, y);
+    });
+
+    canvas.addEventListener('touchend', () => {
+        stopDrawing();
+    });
+
     // ========================================
     // end of event listeners for screen 2
     // ========================================
