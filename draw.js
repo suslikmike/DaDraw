@@ -105,7 +105,6 @@ function draw(time, ctx, width, height) {
 
 function drawScreen1(time, ctx, width, height) {
     const scale = getScale(width);
-    const mobile = isMobile(width);
 
     // 2. Рисуем фон
     ctx.fillStyle = "white";
