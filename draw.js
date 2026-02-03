@@ -110,6 +110,7 @@ function draw(time, ctx, width, height) {
 
 function drawScreen1(time, ctx, width, height) {
     const scale = getScale(width);
+    const mobile = isMobile(width);
 
     // 2. Рисуем фон
     ctx.fillStyle = "white";
@@ -137,7 +138,8 @@ function drawScreen1(time, ctx, width, height) {
     // Draw rectangle at bottom - responsive
     const rectHeight = Math.max(50, 60 * scale);
     const rectWidth = Math.max(200, 250 * scale);
-    const rectY = height - rectHeight - 20;
+    // Position button higher on mobile (100px from bottom vs 20px on desktop)
+    const rectY = mobile ? height - rectHeight - 100 : height - rectHeight - 20;
     const rectX = (width - rectWidth) / 2;
 
     // Update button bounds for click detection
