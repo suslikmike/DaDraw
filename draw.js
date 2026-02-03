@@ -35,8 +35,8 @@ let currentPath = []; // Current path being drawn
 const tools = {
     pencil: { name: 'Pencil', lineWidth: 2, color: '#333333', lineCap: 'round' },
     pen: { name: 'Pen', lineWidth: 4, color: '#000000', lineCap: 'round' },
-    marker: { name: 'Marker', lineWidth: 12, color: '#FF6B6B', lineCap: 'round', opacity: 0.6 },
-    brush: { name: 'Brush', lineWidth: 20, color: '#4ECDC4', lineCap: 'round', opacity: 0.4 },
+    marker: { name: 'Highlighter', lineWidth: 12, color: '#FF6B6B', lineCap: 'round', opacity: 0.4 },
+    brush: { name: 'Brush', lineWidth: 20, color: '#4ECDC4', lineCap: 'round', opacity: 0.8 },
     eraser: { name: 'Eraser', lineWidth: 30, color: 'lightblue', lineCap: 'round' }
 };
 
@@ -47,8 +47,32 @@ let currentColor = '#333333';
 let toolButtons = [];
 let colorButtons = [];
 
-// Available colors
-const colors = ['#000000', '#FF0000', '#00AA00', '#0000FF', '#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3'];
+// Available colors - expanded palette
+const colors = [
+    // Row 1: Basic colors
+    '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF',
+    // Row 2: Warm colors
+    '#FF6B6B', '#FF8E53', '#FFA500', '#FFD93D', '#F9ED69', '#FDCB6E', '#E17055', '#D63031',
+    // Row 3: Cool colors
+    '#4ECDC4', '#48DBFB', '#0ABDE3', '#54A0FF', '#5F27CD', '#A29BFE', '#6C5CE7', '#74B9FF',
+    // Row 4: Nature colors
+    '#95E1D3', '#00B894', '#00CEC9', '#55A3FF', '#26DE81', '#20BF6B', '#0BE881', '#1DD1A1',
+    // Row 5: Earth tones
+    '#B33939', '#CD6133', '#84817A', '#CC8E35', '#A0522D', '#8B4513', '#DEB887', '#D2B48C',
+    // Row 6: Pastels
+    '#FFB8B8', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA', '#E8D5B7', '#F0E6EF', '#DCE2F0'
+];
+
+// Color palette state
+let colorPaletteExpanded = false;
+let colorExpandButtonBounds = { x: 0, y: 0, width: 0, height: 0 };
+
+// Zoom and pan state
+let zoomLevel = 1;
+let panX = 0;
+let panY = 0;
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 5;
 
 // Clear button bounds
 let clearButtonBounds = { x: 0, y: 0, width: 0, height: 0 };
@@ -123,6 +147,11 @@ function drawScreen2(time, ctx, width, height) {
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, width, height);
 
+    // Save context and apply zoom/pan transformations
+    ctx.save();
+    ctx.translate(panX, panY);
+    ctx.scale(zoomLevel, zoomLevel);
+
     // Draw all saved paths
     drawingPaths.forEach(path => {
         if (path.points.length > 1) {
@@ -155,6 +184,9 @@ function drawScreen2(time, ctx, width, height) {
         ctx.stroke();
         ctx.globalAlpha = 1;
     }
+
+    // Restore context (remove zoom/pan for UI elements)
+    ctx.restore();
 
     // Draw toolbar at top
     const toolbarHeight = 70;
@@ -212,15 +244,51 @@ function drawScreen2(time, ctx, width, height) {
     // Draw color palette
     colorButtons = [];
     const colorX = toolX + (toolSize + toolGap) * 5 + 30;
-    const colorSize = 25;
-    const colorGap = 5;
+    const colorSize = 20;
+    const colorGap = 3;
+    const colorsPerRow = 8;
 
-    colors.forEach((color, index) => {
-        const x = colorX + (colorSize + colorGap) * index;
-        const y = toolY + 12;
+    // Expand/Collapse button
+    const expandBtnX = colorX - 25;
+    const expandBtnY = toolY + 15;
+    colorExpandButtonBounds = { x: expandBtnX, y: expandBtnY, width: 20, height: 20 };
+
+    ctx.fillStyle = '#444';
+    ctx.fillRect(expandBtnX, expandBtnY, 20, 20);
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(colorPaletteExpanded ? '−' : '+', expandBtnX + 10, expandBtnY + 15);
+    ctx.textAlign = 'left';
+
+    // Determine how many colors to show
+    const visibleColors = colorPaletteExpanded ? colors : colors.slice(0, 8);
+    const rows = colorPaletteExpanded ? Math.ceil(colors.length / colorsPerRow) : 1;
+
+    // Draw expanded palette background if expanded
+    if (colorPaletteExpanded) {
+        const paletteWidth = colorsPerRow * (colorSize + colorGap) + 10;
+        const paletteHeight = rows * (colorSize + colorGap) + 10;
+        ctx.fillStyle = 'rgba(50, 50, 50, 0.95)';
+        ctx.fillRect(colorX - 5, toolY + 5, paletteWidth, paletteHeight);
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(colorX - 5, toolY + 5, paletteWidth, paletteHeight);
+    }
+
+    visibleColors.forEach((color, index) => {
+        const row = Math.floor(index / colorsPerRow);
+        const col = index % colorsPerRow;
+        const x = colorX + (colorSize + colorGap) * col;
+        const y = toolY + 10 + (colorSize + colorGap) * row;
 
         ctx.fillStyle = color;
         ctx.fillRect(x, y, colorSize, colorSize);
+
+        // Border for visibility (especially for white)
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, colorSize, colorSize);
 
         // Highlight selected color
         if (color === currentColor) {
@@ -249,6 +317,25 @@ function drawScreen2(time, ctx, width, height) {
     ctx.fillText('Clear', clearX + 40, clearY + 23);
     ctx.textAlign = 'left';
 
+    // Zoom indicator and reset button
+    const zoomX = width - 200;
+    const zoomY = toolY + 10;
+    resetZoomButtonBounds = { x: zoomX, y: zoomY, width: 90, height: 35 };
+
+    ctx.fillStyle = zoomLevel !== 1 ? '#FFD93D' : '#888';
+    ctx.fillRect(zoomX, zoomY, 90, 35);
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(zoomX, zoomY, 90, 35);
+
+    ctx.fillStyle = 'black';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.round(zoomLevel * 100) + '%', zoomX + 45, zoomY + 15);
+    ctx.font = '10px Arial';
+    ctx.fillText('Reset', zoomX + 45, zoomY + 28);
+    ctx.textAlign = 'left';
+
     // Back button at bottom
     const rectHeight = 50;
     const rectY = height - rectHeight - 15;
@@ -269,6 +356,13 @@ function drawScreen2(time, ctx, width, height) {
 
 function handleClick(x, y) {
     if (currentScreen === 2) {
+        // Check expand/collapse button for color palette
+        if (x >= colorExpandButtonBounds.x && x <= colorExpandButtonBounds.x + colorExpandButtonBounds.width &&
+            y >= colorExpandButtonBounds.y && y <= colorExpandButtonBounds.y + colorExpandButtonBounds.height) {
+            colorPaletteExpanded = !colorPaletteExpanded;
+            return;
+        }
+
         // Check tool buttons
         for (const btn of toolButtons) {
             if (x >= btn.x && x <= btn.x + btn.width &&
@@ -294,6 +388,13 @@ function handleClick(x, y) {
             currentPath = [];
             return;
         }
+
+        // Check reset zoom button
+        if (x >= resetZoomButtonBounds.x && x <= resetZoomButtonBounds.x + resetZoomButtonBounds.width &&
+            y >= resetZoomButtonBounds.y && y <= resetZoomButtonBounds.y + resetZoomButtonBounds.height) {
+            resetZoom();
+            return;
+        }
     }
 
     // Check main button (start drawing / go back)
@@ -308,18 +409,24 @@ function startDrawing(x, y) {
     if (currentScreen !== 2) return;
     if (y < 70) return; // Don't draw on toolbar
 
+    // Convert screen coordinates to canvas coordinates
+    const canvasCoords = screenToCanvas(x, y);
+
     isDrawing = true;
-    lastX = x;
-    lastY = y;
-    currentPath = [{ x, y }];
+    lastX = canvasCoords.x;
+    lastY = canvasCoords.y;
+    currentPath = [{ x: canvasCoords.x, y: canvasCoords.y }];
 }
 
 function continueDrawing(x, y) {
     if (!isDrawing || currentScreen !== 2) return;
 
-    currentPath.push({ x, y });
-    lastX = x;
-    lastY = y;
+    // Convert screen coordinates to canvas coordinates
+    const canvasCoords = screenToCanvas(x, y);
+
+    currentPath.push({ x: canvasCoords.x, y: canvasCoords.y });
+    lastX = canvasCoords.x;
+    lastY = canvasCoords.y;
 }
 
 function stopDrawing() {
@@ -339,4 +446,38 @@ function stopDrawing() {
     isDrawing = false;
     currentPath = [];
 }
+
+// Zoom function for scroll wheel
+function handleZoom(deltaY, mouseX, mouseY) {
+    if (currentScreen !== 2) return;
+    if (mouseY < 70) return; // Don't zoom when over toolbar
+
+    const zoomFactor = deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevel * zoomFactor));
+
+    // Zoom towards mouse position
+    const zoomChange = newZoom / zoomLevel;
+    panX = mouseX - (mouseX - panX) * zoomChange;
+    panY = mouseY - (mouseY - panY) * zoomChange;
+
+    zoomLevel = newZoom;
+}
+
+// Reset zoom
+function resetZoom() {
+    zoomLevel = 1;
+    panX = 0;
+    panY = 0;
+}
+
+// Convert screen coordinates to canvas coordinates (accounting for zoom/pan)
+function screenToCanvas(x, y) {
+    return {
+        x: (x - panX) / zoomLevel,
+        y: (y - panY) / zoomLevel
+    };
+}
+
+// Reset zoom button bounds
+let resetZoomButtonBounds = { x: 0, y: 0, width: 0, height: 0 };
 

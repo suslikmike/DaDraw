@@ -108,6 +108,15 @@
         stopDrawing();
     });
 
+    // Wheel event for zooming
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        handleZoom(e.deltaY, x, y);
+    }, { passive: false });
+
     // ========================================
     // end of event listeners for screen 2
     // ========================================
