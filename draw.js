@@ -11,6 +11,14 @@ penIcon.src = 'pen.jpg';
 const markerIcon = new Image();
 markerIcon.src = 'marker.png';
 
+//load brush icon image
+const brushIcon = new Image();
+brushIcon.src = 'paintbrush.png';
+
+// Load eraser icon image
+const eraserIcon = new Image();
+eraserIcon.src = 'eraser.png';
+
 let currentScreen = 1;
 
 // Store button position for click detection
@@ -187,6 +195,10 @@ function drawScreen2(time, ctx, width, height) {
             ctx.drawImage(penIcon, x + 10, toolY + 5, 30, 30);
         } else if (toolKey === 'marker' && markerIcon.complete) {
             ctx.drawImage(markerIcon, x + 10, toolY + 5, 30, 30);
+        } else if (toolKey === 'eraser' && eraserIcon.complete) {
+            ctx.drawImage(eraserIcon, x + 10, toolY + 5, 30, 30);
+        } else if (toolKey === 'brush' && brushIcon.complete) {
+            ctx.drawImage(brushIcon, x + 10, toolY + 5, 30, 30);
         } else {
             ctx.font = "bold 12px Arial";
             ctx.fillText(tool.lineWidth + 'px', x + toolSize/2, toolY + 22);
