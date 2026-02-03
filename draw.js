@@ -34,6 +34,11 @@ function isMobile(width) {
 
 let currentScreen = 1;
 
+// Get current screen (for external access)
+function getCurrentScreen() {
+    return currentScreen;
+}
+
 // Store button position for click detection
 let buttonBounds = { x: 0, y: 0, width: 250, height: 60 };
 
