@@ -798,7 +798,7 @@ function handleSliderStart(x, y) {
     return false;
 }
 
-function handleSliderMove(x, y) {
+function handleSliderMove(x) {
     if (!isDraggingSlider) return false;
     updateSliderValue(x);
     return true;

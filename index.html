@@ -80,7 +80,7 @@
         const y = e.clientY - rect.top;
 
         // Handle slider drag
-        if (handleSliderMove(x, y)) return;
+        if (handleSliderMove(x)) return;
 
         continueDrawing(x, y);
     });
@@ -128,7 +128,7 @@
         const y = touch.clientY - rect.top;
 
         // Handle slider drag
-        if (handleSliderMove(x, y)) return;
+        if (handleSliderMove(x)) return;
 
         continueDrawing(x, y);
     });
