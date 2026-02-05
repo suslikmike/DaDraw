@@ -98,6 +98,15 @@ let clearButtonBounds = { x: 0, y: 0, width: 0, height: 0 };
 // Current toolbar height (updates based on screen size)
 let currentToolbarHeight = 70;
 
+// Grid dots visibility
+let showGridDots = true;
+let gridDotsButtonBounds = { x: 0, y: 0, width: 0, height: 0 };
+
+// Tool size slider
+let toolSizeMultiplier = 1; // 0.5 to 3
+let sliderBounds = { x: 0, y: 0, width: 0, height: 0 };
+let isDraggingSlider = false;
+
 function draw(time, ctx, width, height) {
     ctx.clearRect(0, 0, width, height);
 
@@ -214,7 +223,7 @@ function drawScreen1(time, ctx, width, height) {
     // Version badge
     ctx.font = '12px Arial';
     ctx.fillStyle = 'rgba(100, 100, 100, 0.6)';
-    ctx.fillText('v2.0', width - 40, height - 20);
+    ctx.fillText('v0.2', width - 40, height - 20);
 }
 
 function drawScreen2(time, ctx, width, height) {
@@ -225,10 +234,41 @@ function drawScreen2(time, ctx, width, height) {
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, width, height);
 
+    // Draw grid dots (before zoom transform so they scale with zoom)
+    if (showGridDots) {
+        ctx.save();
+        ctx.translate(panX, panY);
+        ctx.scale(zoomLevel, zoomLevel);
+
+        const dotSpacing = 50; // Space between dots
+        const dotRadius = 3;
+        const canvasWidth = width / zoomLevel + Math.abs(panX / zoomLevel);
+        const canvasHeight = height / zoomLevel + Math.abs(panY / zoomLevel);
+        const startX = Math.floor(-panX / zoomLevel / dotSpacing) * dotSpacing;
+        const startY = Math.floor(-panY / zoomLevel / dotSpacing) * dotSpacing;
+
+        ctx.fillStyle = 'rgba(200, 200, 220, 0.5)';
+
+        for (let x = startX; x < canvasWidth + dotSpacing; x += dotSpacing) {
+            for (let y = startY; y < canvasHeight + dotSpacing; y += dotSpacing) {
+                ctx.beginPath();
+                ctx.arc(x, y, dotRadius / zoomLevel, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.restore();
+    }
+
     // Save context and apply zoom/pan transformations
     ctx.save();
     ctx.translate(panX, panY);
     ctx.scale(zoomLevel, zoomLevel);
+
+    // Reset shadows for drawing (prevent UI shadows from affecting strokes)
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 
     // Draw all saved paths
     drawingPaths.forEach(path => {
@@ -252,7 +292,7 @@ function drawScreen2(time, ctx, width, height) {
         const tool = tools[currentTool];
         ctx.beginPath();
         ctx.strokeStyle = currentTool === 'eraser' ? 'white' : currentColor;
-        ctx.lineWidth = tool.lineWidth;
+        ctx.lineWidth = tool.lineWidth * toolSizeMultiplier;
         ctx.lineCap = tool.lineCap;
         ctx.globalAlpha = tool.opacity || 1;
         ctx.moveTo(currentPath[0].x, currentPath[0].y);
@@ -503,6 +543,89 @@ function drawScreen2(time, ctx, width, height) {
     ctx.fillText('🔍 ' + Math.round(zoomLevel * 100) + '%', zoomX + zoomBtnWidth/2, zoomY + zoomBtnHeight/2 + 5);
     ctx.textAlign = 'left';
 
+    // Grid dots toggle button
+    const gridBtnWidth = mobile ? 40 : Math.max(45, Math.floor(55 * scale));
+    const gridBtnHeight = clearBtnHeight;
+    const gridX = zoomX - gridBtnWidth - 10;
+    const gridY = clearY;
+    gridDotsButtonBounds = { x: gridX, y: gridY, width: gridBtnWidth, height: gridBtnHeight };
+
+    // Grid button gradient
+    const gridGradient = ctx.createLinearGradient(gridX, gridY, gridX, gridY + gridBtnHeight);
+    if (showGridDots) {
+        gridGradient.addColorStop(0, '#4ECDC4');
+        gridGradient.addColorStop(1, '#44A08D');
+    } else {
+        gridGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        gridGradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+    }
+
+    ctx.beginPath();
+    ctx.roundRect(gridX, gridY, gridBtnWidth, gridBtnHeight, 8);
+    ctx.fillStyle = gridGradient;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = 'white';
+    ctx.font = `bold ${mobile ? 14 : 16}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText(showGridDots ? '⊡' : '⊠', gridX + gridBtnWidth/2, gridY + gridBtnHeight/2 + 6);
+    ctx.textAlign = 'left';
+
+    // Tool size slider
+    const sliderWidth = mobile ? 80 : Math.max(100, Math.floor(120 * scale));
+    const sliderHeight = clearBtnHeight;
+    const sliderX = gridX - sliderWidth - 15;
+    const sliderY = clearY;
+    sliderBounds = { x: sliderX, y: sliderY, width: sliderWidth, height: sliderHeight };
+
+    // Slider background
+    ctx.beginPath();
+    ctx.roundRect(sliderX, sliderY, sliderWidth, sliderHeight, 8);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Slider track
+    const trackY = sliderY + sliderHeight / 2;
+    const trackPadding = 12;
+    const trackWidth = sliderWidth - trackPadding * 2;
+
+    ctx.beginPath();
+    ctx.moveTo(sliderX + trackPadding, trackY);
+    ctx.lineTo(sliderX + sliderWidth - trackPadding, trackY);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Slider handle position (0.5 to 3 mapped to track)
+    const handleProgress = (toolSizeMultiplier - 0.5) / 2.5; // 0 to 1
+    const handleX = sliderX + trackPadding + handleProgress * trackWidth;
+
+    // Slider handle
+    ctx.beginPath();
+    ctx.arc(handleX, trackY, 8, 0, Math.PI * 2);
+    const handleGradient = ctx.createRadialGradient(handleX, trackY, 0, handleX, trackY, 8);
+    handleGradient.addColorStop(0, '#FFFFFF');
+    handleGradient.addColorStop(1, '#4ECDC4');
+    ctx.fillStyle = handleGradient;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Size label
+    ctx.fillStyle = 'white';
+    ctx.font = `${mobile ? 8 : 9}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Size: ' + toolSizeMultiplier.toFixed(1) + 'x', sliderX + sliderWidth / 2, sliderY + sliderHeight - 3);
+    ctx.textAlign = 'left';
+
     // Back button at bottom - responsive with modern styling
     const backBtnWidth = mobile ? 90 : Math.max(110, Math.floor(130 * scale));
     const backBtnHeight = mobile ? 42 : Math.max(44, Math.floor(52 * scale));
@@ -579,6 +702,13 @@ function handleClick(x, y) {
             resetZoom();
             return;
         }
+
+        // Check grid dots toggle button
+        if (x >= gridDotsButtonBounds.x && x <= gridDotsButtonBounds.x + gridDotsButtonBounds.width &&
+            y >= gridDotsButtonBounds.y && y <= gridDotsButtonBounds.y + gridDotsButtonBounds.height) {
+            showGridDots = !showGridDots;
+            return;
+        }
     }
 
     // Check main button (start drawing / go back)
@@ -621,7 +751,7 @@ function stopDrawing() {
         drawingPaths.push({
             points: [...currentPath],
             color: currentTool === 'eraser' ? 'white' : currentColor,
-            lineWidth: tool.lineWidth,
+            lineWidth: tool.lineWidth * toolSizeMultiplier,
             lineCap: tool.lineCap,
             opacity: tool.opacity || 1
         });
@@ -652,6 +782,48 @@ function resetZoom() {
     zoomLevel = 1;
     panX = 0;
     panY = 0;
+}
+
+// Slider interaction functions
+function handleSliderStart(x, y) {
+    if (currentScreen !== 2) return false;
+
+    // Check if click is on slider
+    if (x >= sliderBounds.x && x <= sliderBounds.x + sliderBounds.width &&
+        y >= sliderBounds.y && y <= sliderBounds.y + sliderBounds.height) {
+        isDraggingSlider = true;
+        updateSliderValue(x);
+        return true;
+    }
+    return false;
+}
+
+function handleSliderMove(x, y) {
+    if (!isDraggingSlider) return false;
+    updateSliderValue(x);
+    return true;
+}
+
+function handleSliderEnd() {
+    if (isDraggingSlider) {
+        isDraggingSlider = false;
+        return true;
+    }
+    return false;
+}
+
+function updateSliderValue(x) {
+    const trackPadding = 12;
+    const trackWidth = sliderBounds.width - trackPadding * 2;
+    const trackStart = sliderBounds.x + trackPadding;
+
+    // Calculate progress (0 to 1)
+    let progress = (x - trackStart) / trackWidth;
+    progress = Math.max(0, Math.min(1, progress));
+
+    // Map to 0.5 to 3
+    toolSizeMultiplier = 0.5 + progress * 2.5;
+    toolSizeMultiplier = Math.round(toolSizeMultiplier * 10) / 10; // Round to 1 decimal
 }
 
 // Convert screen coordinates to canvas coordinates (accounting for zoom/pan)
