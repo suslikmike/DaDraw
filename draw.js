@@ -107,6 +107,131 @@ let toolSizeMultiplier = 1; // 0.5 to 3
 let sliderBounds = { x: 0, y: 0, width: 0, height: 0 };
 let isDraggingSlider = false;
 
+// Undo button bounds
+let undoButtonBounds = { x: 0, y: 0, width: 0, height: 0 };
+
+// Helper function to draw the size slider
+function drawSizeSlider(ctx, sliderX, sliderY, sliderWidth, sliderHeight, handleRadius, labelY, labelText) {
+    // Slider background
+    ctx.beginPath();
+    ctx.roundRect(sliderX, sliderY, sliderWidth, sliderHeight, 8);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Slider track
+    const trackY = sliderY + sliderHeight / 2;
+    const trackPadding = 12;
+    const trackWidth = sliderWidth - trackPadding * 2;
+
+    ctx.beginPath();
+    ctx.moveTo(sliderX + trackPadding, trackY);
+    ctx.lineTo(sliderX + sliderWidth - trackPadding, trackY);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Slider handle
+    const handleProgress = (toolSizeMultiplier - 0.5) / 2.5;
+    const handleX = sliderX + trackPadding + handleProgress * trackWidth;
+
+    ctx.beginPath();
+    ctx.arc(handleX, trackY, handleRadius, 0, Math.PI * 2);
+    const handleGradient = ctx.createRadialGradient(handleX, trackY, 0, handleX, trackY, handleRadius);
+    handleGradient.addColorStop(0, '#FFFFFF');
+    handleGradient.addColorStop(1, '#4ECDC4');
+    ctx.fillStyle = handleGradient;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Size label
+    ctx.fillStyle = 'white';
+    ctx.font = labelText.includes('Size') ? '9px Arial' : '8px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(labelText, sliderX + sliderWidth / 2, labelY);
+    ctx.textAlign = 'left';
+}
+
+// Helper function to draw color palette
+function drawColorPalette(ctx, visibleColors, colorX, colorY, colorSize, colorGap, colorsPerRow, showGlow) {
+    visibleColors.forEach((color, index) => {
+        const row = Math.floor(index / colorsPerRow);
+        const col = index % colorsPerRow;
+        const x = colorX + (colorSize + colorGap) * col;
+        const y = colorY + (colorSize + colorGap) * row;
+        const isSelected = color === currentColor;
+
+        ctx.beginPath();
+        ctx.roundRect(x, y, colorSize, colorSize, showGlow ? 4 : 3);
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        ctx.strokeStyle = isSelected ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = isSelected ? (showGlow ? 3 : 2) : 1;
+        ctx.stroke();
+
+        if (isSelected && showGlow) {
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.roundRect(x - 2, y - 2, colorSize + 4, colorSize + 4, 6);
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        colorButtons.push({ color, x, y, width: colorSize, height: colorSize });
+    });
+}
+
+// Helper function to draw a gradient button
+function drawGradientButton(ctx, x, y, width, height, color1, color2, text, fontSize, textColor = 'white') {
+    const gradient = ctx.createLinearGradient(x, y, x, y + height);
+    gradient.addColorStop(0, color1);
+    gradient.addColorStop(1, color2);
+
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, 8);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = textColor;
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, x + width / 2, y + height / 2 + fontSize / 3);
+    ctx.textAlign = 'left';
+}
+
+// Helper function to draw expand/collapse button
+function drawExpandButton(ctx, x, y, size, fontSize, borderRadius) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, size, size, borderRadius);
+    const expandGradient = ctx.createLinearGradient(x, y, x, y + size);
+    expandGradient.addColorStop(0, colorPaletteExpanded ? '#FF6B6B' : '#4ECDC4');
+    expandGradient.addColorStop(1, colorPaletteExpanded ? '#ee5a5a' : '#44A08D');
+    ctx.fillStyle = expandGradient;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = 'white';
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText(colorPaletteExpanded ? '−' : '+', x + size/2, y + size * 0.75);
+    ctx.textAlign = 'left';
+}
+
+
 function draw(time, ctx, width, height) {
     ctx.clearRect(0, 0, width, height);
 
@@ -426,47 +551,23 @@ function drawScreen2(time, ctx, width, height) {
         const backBtnWidth = 70;
         const backX = 10;
         buttonBounds = { x: backX, y: bottomBtnY, width: backBtnWidth, height: bottomBtnHeight };
-
-        const backGradient = ctx.createLinearGradient(backX, bottomBtnY, backX, bottomBtnY + bottomBtnHeight);
-        backGradient.addColorStop(0, '#fa8072');
-        backGradient.addColorStop(1, '#e66b5b');
-
-        ctx.beginPath();
-        ctx.roundRect(backX, bottomBtnY, backBtnWidth, bottomBtnHeight, 8);
-        ctx.fillStyle = backGradient;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.fillStyle = "white";
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText("← Back", backX + backBtnWidth/2, bottomBtnY + bottomBtnHeight/2 + 4);
+        drawGradientButton(ctx, backX, bottomBtnY, backBtnWidth, bottomBtnHeight, '#fa8072', '#e66b5b', '← Back', 12);
 
         // Clear button
         const clearBtnWidth = 55;
         const clearX = backX + backBtnWidth + bottomBtnGap;
         clearButtonBounds = { x: clearX, y: bottomBtnY, width: clearBtnWidth, height: bottomBtnHeight };
+        drawGradientButton(ctx, clearX, bottomBtnY, clearBtnWidth, bottomBtnHeight, '#FF6B6B', '#ee5253', '🗑 Clear', 11);
 
-        const clearGradient = ctx.createLinearGradient(clearX, bottomBtnY, clearX, bottomBtnY + bottomBtnHeight);
-        clearGradient.addColorStop(0, '#FF6B6B');
-        clearGradient.addColorStop(1, '#ee5253');
-
-        ctx.beginPath();
-        ctx.roundRect(clearX, bottomBtnY, clearBtnWidth, bottomBtnHeight, 8);
-        ctx.fillStyle = clearGradient;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.stroke();
-
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 11px Arial';
-        ctx.fillText('🗑 Clear', clearX + clearBtnWidth/2, bottomBtnY + bottomBtnHeight/2 + 4);
+        // Undo button
+        const undoBtnWidth = 50;
+        const undoX = clearX + clearBtnWidth + bottomBtnGap;
+        undoButtonBounds = { x: undoX, y: bottomBtnY, width: undoBtnWidth, height: bottomBtnHeight };
+        drawGradientButton(ctx, undoX, bottomBtnY, undoBtnWidth, bottomBtnHeight, '#9b59b6', '#8e44ad', '↩ Undo', 11);
 
         // Grid toggle button
         const gridBtnWidth = 36;
-        const gridX = clearX + clearBtnWidth + bottomBtnGap;
+        const gridX = undoX + undoBtnWidth + bottomBtnGap;
         gridDotsButtonBounds = { x: gridX, y: bottomBtnY, width: gridBtnWidth, height: bottomBtnHeight };
 
         const gridGradient = ctx.createLinearGradient(gridX, bottomBtnY, gridX, bottomBtnY + bottomBtnHeight);
@@ -519,47 +620,7 @@ function drawScreen2(time, ctx, width, height) {
         const sliderX = zoomX + zoomBtnWidth + bottomBtnGap;
         sliderBounds = { x: sliderX, y: bottomBtnY, width: sliderWidth, height: bottomBtnHeight };
 
-        ctx.beginPath();
-        ctx.roundRect(sliderX, bottomBtnY, sliderWidth, bottomBtnHeight, 8);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.stroke();
-
-        // Slider track
-        const trackY = bottomBtnY + bottomBtnHeight / 2;
-        const trackPadding = 10;
-        const trackWidth = sliderWidth - trackPadding * 2;
-
-        ctx.beginPath();
-        ctx.moveTo(sliderX + trackPadding, trackY);
-        ctx.lineTo(sliderX + sliderWidth - trackPadding, trackY);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-
-        // Slider handle
-        const handleProgress = (toolSizeMultiplier - 0.5) / 2.5;
-        const handleX = sliderX + trackPadding + handleProgress * trackWidth;
-
-        ctx.beginPath();
-        ctx.arc(handleX, trackY, 7, 0, Math.PI * 2);
-        const handleGradient = ctx.createRadialGradient(handleX, trackY, 0, handleX, trackY, 7);
-        handleGradient.addColorStop(0, '#FFFFFF');
-        handleGradient.addColorStop(1, '#4ECDC4');
-        ctx.fillStyle = handleGradient;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Size label
-        ctx.fillStyle = 'white';
-        ctx.font = '8px Arial';
-        ctx.fillText(toolSizeMultiplier.toFixed(1) + 'x', sliderX + sliderWidth / 2, bottomBtnY + bottomBtnHeight - 2);
-
-        ctx.textAlign = 'left';
+        drawSizeSlider(ctx, sliderX, bottomBtnY, sliderWidth, bottomBtnHeight, 7, bottomBtnY + bottomBtnHeight - 2, toolSizeMultiplier.toFixed(1) + 'x');
 
         // Color expand button (in top toolbar, right side)
         const expandBtnSize = 16;
@@ -567,22 +628,7 @@ function drawScreen2(time, ctx, width, height) {
         const expandBtnY = toolY + (toolSize - expandBtnSize) / 2;
         colorExpandButtonBounds = { x: expandBtnX, y: expandBtnY, width: expandBtnSize, height: expandBtnSize };
 
-        ctx.beginPath();
-        ctx.roundRect(expandBtnX, expandBtnY, expandBtnSize, expandBtnSize, 4);
-        const expandGradient = ctx.createLinearGradient(expandBtnX, expandBtnY, expandBtnX, expandBtnY + expandBtnSize);
-        expandGradient.addColorStop(0, colorPaletteExpanded ? '#FF6B6B' : '#4ECDC4');
-        expandGradient.addColorStop(1, colorPaletteExpanded ? '#ee5a5a' : '#44A08D');
-        ctx.fillStyle = expandGradient;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(colorPaletteExpanded ? '−' : '+', expandBtnX + expandBtnSize/2, expandBtnY + expandBtnSize * 0.75);
-        ctx.textAlign = 'left';
+        drawExpandButton(ctx, expandBtnX, expandBtnY, expandBtnSize, 12, 4);
 
         // Color palette (between tools and expand button)
         colorButtons = [];
@@ -611,24 +657,7 @@ function drawScreen2(time, ctx, width, height) {
             ctx.shadowBlur = 0;
         }
 
-        visibleColors.forEach((color, index) => {
-            const row = Math.floor(index / colorsPerRow);
-            const col = index % colorsPerRow;
-            const x = colorX + (colorSize + colorGap) * col;
-            const y = toolY + 4 + (colorSize + colorGap) * row;
-            const isSelected = color === currentColor;
-
-            ctx.beginPath();
-            ctx.roundRect(x, y, colorSize, colorSize, 3);
-            ctx.fillStyle = color;
-            ctx.fill();
-
-            ctx.strokeStyle = isSelected ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = isSelected ? 2 : 1;
-            ctx.stroke();
-
-            colorButtons.push({ color, x, y, width: colorSize, height: colorSize });
-        });
+        drawColorPalette(ctx, visibleColors, colorX, toolY + 4, colorSize, colorGap, colorsPerRow, false);
 
     } else {
         // Desktop layout (original)
@@ -646,23 +675,7 @@ function drawScreen2(time, ctx, width, height) {
         const expandBtnY = toolY + (toolSize - expandBtnSize) / 2;
         colorExpandButtonBounds = { x: expandBtnX, y: expandBtnY, width: expandBtnSize, height: expandBtnSize };
 
-        // Rounded expand button
-        ctx.beginPath();
-        ctx.roundRect(expandBtnX, expandBtnY, expandBtnSize, expandBtnSize, 5);
-        const expandGradient = ctx.createLinearGradient(expandBtnX, expandBtnY, expandBtnX, expandBtnY + expandBtnSize);
-        expandGradient.addColorStop(0, colorPaletteExpanded ? '#FF6B6B' : '#4ECDC4');
-        expandGradient.addColorStop(1, colorPaletteExpanded ? '#ee5a5a' : '#44A08D');
-        ctx.fillStyle = expandGradient;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 16px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(colorPaletteExpanded ? '−' : '+', expandBtnX + expandBtnSize/2, expandBtnY + expandBtnSize * 0.72);
-        ctx.textAlign = 'left';
+        drawExpandButton(ctx, expandBtnX, expandBtnY, expandBtnSize, 16, 5);
 
         // Determine how many colors to show
         const visibleColors = colorPaletteExpanded ? colors : colors.slice(0, colorsPerRow);
@@ -688,38 +701,7 @@ function drawScreen2(time, ctx, width, height) {
             ctx.shadowBlur = 0;
         }
 
-        visibleColors.forEach((color, index) => {
-            const row = Math.floor(index / colorsPerRow);
-            const col = index % colorsPerRow;
-            const x = colorX + (colorSize + colorGap) * col;
-            const y = toolY + 6 + (colorSize + colorGap) * row;
-            const isSelected = color === currentColor;
-
-            // Draw color with rounded corners
-            ctx.beginPath();
-            ctx.roundRect(x, y, colorSize, colorSize, 4);
-            ctx.fillStyle = color;
-            ctx.fill();
-
-            // Border for visibility
-            ctx.strokeStyle = isSelected ? '#FFFFFF' : 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = isSelected ? 3 : 1;
-            ctx.stroke();
-
-            // Selection indicator
-            if (isSelected) {
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 8;
-                ctx.beginPath();
-                ctx.roundRect(x - 2, y - 2, colorSize + 4, colorSize + 4, 6);
-                ctx.strokeStyle = '#FFFFFF';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-            }
-
-            colorButtons.push({ color, x, y, width: colorSize, height: colorSize });
-        });
+        drawColorPalette(ctx, visibleColors, colorX, toolY + 6, colorSize, colorGap, colorsPerRow, true);
 
         // Clear button - responsive with modern styling
         const clearBtnWidth = Math.max(65, Math.floor(85 * scale));
@@ -727,30 +709,20 @@ function drawScreen2(time, ctx, width, height) {
         const clearX = width - clearBtnWidth - 12;
         const clearY = toolY + (toolSize - clearBtnHeight) / 2;
         clearButtonBounds = { x: clearX, y: clearY, width: clearBtnWidth, height: clearBtnHeight };
+        drawGradientButton(ctx, clearX, clearY, clearBtnWidth, clearBtnHeight, '#FF6B6B', '#ee5253', '🗑 Clear', 14);
 
-        // Clear button gradient
-        const clearGradient = ctx.createLinearGradient(clearX, clearY, clearX, clearY + clearBtnHeight);
-        clearGradient.addColorStop(0, '#FF6B6B');
-        clearGradient.addColorStop(1, '#ee5253');
-
-        ctx.beginPath();
-        ctx.roundRect(clearX, clearY, clearBtnWidth, clearBtnHeight, 8);
-        ctx.fillStyle = clearGradient;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('🗑 Clear', clearX + clearBtnWidth/2, clearY + clearBtnHeight/2 + 5);
-        ctx.textAlign = 'left';
+        // Undo button - desktop
+        const undoBtnWidth = Math.max(65, Math.floor(80 * scale));
+        const undoBtnHeight = clearBtnHeight;
+        const undoX = clearX - undoBtnWidth - 10;
+        const undoY = clearY;
+        undoButtonBounds = { x: undoX, y: undoY, width: undoBtnWidth, height: undoBtnHeight };
+        drawGradientButton(ctx, undoX, undoY, undoBtnWidth, undoBtnHeight, '#9b59b6', '#8e44ad', '↩ Undo', 14);
 
         // Zoom indicator and reset button - responsive with modern styling
         const zoomBtnWidth = Math.max(75, Math.floor(95 * scale));
         const zoomBtnHeight = clearBtnHeight;
-        const zoomX = clearX - zoomBtnWidth - 10;
+        const zoomX = undoX - zoomBtnWidth - 10;
         const zoomY = clearY;
         resetZoomButtonBounds = { x: zoomX, y: zoomY, width: zoomBtnWidth, height: zoomBtnHeight };
 
@@ -816,50 +788,7 @@ function drawScreen2(time, ctx, width, height) {
         const sliderY = clearY;
         sliderBounds = { x: sliderX, y: sliderY, width: sliderWidth, height: sliderHeight };
 
-        // Slider background
-        ctx.beginPath();
-        ctx.roundRect(sliderX, sliderY, sliderWidth, sliderHeight, 8);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Slider track
-        const trackY = sliderY + sliderHeight / 2;
-        const trackPadding = 12;
-        const trackWidth = sliderWidth - trackPadding * 2;
-
-        ctx.beginPath();
-        ctx.moveTo(sliderX + trackPadding, trackY);
-        ctx.lineTo(sliderX + sliderWidth - trackPadding, trackY);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-
-        // Slider handle position (0.5 to 3 mapped to track)
-        const handleProgress = (toolSizeMultiplier - 0.5) / 2.5; // 0 to 1
-        const handleX = sliderX + trackPadding + handleProgress * trackWidth;
-
-        // Slider handle
-        ctx.beginPath();
-        ctx.arc(handleX, trackY, 8, 0, Math.PI * 2);
-        const handleGradient = ctx.createRadialGradient(handleX, trackY, 0, handleX, trackY, 8);
-        handleGradient.addColorStop(0, '#FFFFFF');
-        handleGradient.addColorStop(1, '#4ECDC4');
-        ctx.fillStyle = handleGradient;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Size label
-        ctx.fillStyle = 'white';
-        ctx.font = '9px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Size: ' + toolSizeMultiplier.toFixed(1) + 'x', sliderX + sliderWidth / 2, sliderY + sliderHeight - 3);
-        ctx.textAlign = 'left';
+        drawSizeSlider(ctx, sliderX, sliderY, sliderWidth, sliderHeight, 8, sliderY + sliderHeight - 3, 'Size: ' + toolSizeMultiplier.toFixed(1) + 'x');
 
         // Back button at bottom - responsive with modern styling
         const backBtnWidth = Math.max(110, Math.floor(130 * scale));
@@ -932,6 +861,13 @@ function handleClick(x, y) {
             return;
         }
 
+        // Check undo button
+        if (x >= undoButtonBounds.x && x <= undoButtonBounds.x + undoButtonBounds.width &&
+            y >= undoButtonBounds.y && y <= undoButtonBounds.y + undoButtonBounds.height) {
+            undoDrawing();
+            return;
+        }
+
         // Check reset zoom button
         if (x >= resetZoomButtonBounds.x && x <= resetZoomButtonBounds.x + resetZoomButtonBounds.width &&
             y >= resetZoomButtonBounds.y && y <= resetZoomButtonBounds.y + resetZoomButtonBounds.height) {
@@ -995,6 +931,13 @@ function stopDrawing() {
 
     isDrawing = false;
     currentPath = [];
+}
+
+// Undo last drawing
+function undoDrawing() {
+    if (drawingPaths.length > 0) {
+        drawingPaths.pop();
+    }
 }
 
 // Zoom function for scroll wheel
