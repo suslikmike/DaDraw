@@ -359,30 +359,6 @@ function drawScreen2(time, ctx, width, height) {
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, width, height);
 
-    // Draw grid dots (before zoom transform so they scale with zoom)
-    if (showGridDots) {
-        ctx.save();
-        ctx.translate(panX, panY);
-        ctx.scale(zoomLevel, zoomLevel);
-
-        const dotSpacing = 50; // Space between dots
-        const dotRadius = 3;
-        const canvasWidth = width / zoomLevel + Math.abs(panX / zoomLevel);
-        const canvasHeight = height / zoomLevel + Math.abs(panY / zoomLevel);
-        const startX = Math.floor(-panX / zoomLevel / dotSpacing) * dotSpacing;
-        const startY = Math.floor(-panY / zoomLevel / dotSpacing) * dotSpacing;
-
-        ctx.fillStyle = 'rgba(200, 200, 220, 0.5)';
-
-        for (let x = startX; x < canvasWidth + dotSpacing; x += dotSpacing) {
-            for (let y = startY; y < canvasHeight + dotSpacing; y += dotSpacing) {
-                ctx.beginPath();
-                ctx.arc(x, y, dotRadius / zoomLevel, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        ctx.restore();
-    }
 
     // Save context and apply zoom/pan transformations
     ctx.save();
@@ -430,6 +406,31 @@ function drawScreen2(time, ctx, width, height) {
 
     // Restore context (remove zoom/pan for UI elements)
     ctx.restore();
+
+    // Draw grid dots on top of drawings (so eraser doesn't erase them)
+    if (showGridDots) {
+        ctx.save();
+        ctx.translate(panX, panY);
+        ctx.scale(zoomLevel, zoomLevel);
+
+        const dotSpacing = 50;
+        const dotRadius = 3;
+        const canvasWidth = width / zoomLevel + Math.abs(panX / zoomLevel);
+        const canvasHeight = height / zoomLevel + Math.abs(panY / zoomLevel);
+        const startX = Math.floor(-panX / zoomLevel / dotSpacing) * dotSpacing;
+        const startY = Math.floor(-panY / zoomLevel / dotSpacing) * dotSpacing;
+
+        ctx.fillStyle = 'rgba(200, 200, 220, 0.5)';
+
+        for (let x = startX; x < canvasWidth + dotSpacing; x += dotSpacing) {
+            for (let y = startY; y < canvasHeight + dotSpacing; y += dotSpacing) {
+                ctx.beginPath();
+                ctx.arc(x, y, dotRadius / zoomLevel, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.restore();
+    }
 
     // Responsive toolbar dimensions
     const toolbarHeight = mobile ? 55 : Math.max(65, Math.floor(75 * scale));
